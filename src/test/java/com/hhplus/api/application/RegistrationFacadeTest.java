@@ -66,7 +66,7 @@ class RegistrationFacadeTest {
                     registrationFacade.regist(request);
                 } catch(IllegalArgumentException ex) {
                     if(ex.getMessage().equals("이미 마감된 강의입니다.")){
-                        failCnt.getAndIncrement();
+                        failCnt.incrementAndGet();
                     }
                 } finally {
                     latch.countDown();
@@ -79,6 +79,40 @@ class RegistrationFacadeTest {
         assertEquals(10, failCnt);
 
     }
+
+    @Test
+    @DisplayName("동일한 유저가 같은 특강을 5번 신청했을 때 1번만 성공")
+    void 중복_신청_방지(){
+        //given
+        int testCount = 5;
+        AtomicInteger successCnt = new AtomicInteger(0);
+        AtomicInteger failCnt = new AtomicInteger(0);
+
+        User user1 = new User(1L, "홍길동");
+        Lecture math = new Lecture(1L, "이산수학", "장영철", 30, 30);
+
+        when(userService.getUser(1L)).thenReturn(user1);
+        when(lectureService.getLecture(1L)).thenReturn(math);
+
+
+        for (int i = 0; i < testCount; i++) {
+            try {
+                RegistRequest request = new RegistRequest(user1.getUserId(), math.getLectureId());
+                registrationFacade.regist(request);
+                successCnt.incrementAndGet();
+            } catch(IllegalArgumentException ex){
+                if(ex.getMessage().equals("이미 신청한 강의입니다.")){
+                    failCnt.incrementAndGet();
+                }
+            }
+        }
+
+        assertEquals(1, successCnt);
+        assertEquals(4, failCnt);
+
+    }
+
+
 
     @Test
     @DisplayName("특강 신청 테스트")
