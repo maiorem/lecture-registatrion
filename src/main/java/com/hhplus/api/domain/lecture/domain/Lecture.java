@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
 @Getter
@@ -24,12 +25,14 @@ public class Lecture {
 
     private String tutorName;
 
+    @ColumnDefault("30")
     private int maxSeat;
 
+    @ColumnDefault("30")
     private int availableSeat;
 
     public void selectSeat() {
-        if(availableSeat > 0) this.availableSeat--;
+        if(this.availableSeat > 0) this.availableSeat--;
     }
 
 }

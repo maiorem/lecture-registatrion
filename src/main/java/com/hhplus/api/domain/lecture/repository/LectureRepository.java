@@ -10,6 +10,8 @@ import java.util.List;
 @Repository
 public interface LectureRepository{
 
+    Lecture getLectureWithLock(Long lectureId);
+
     Lecture getLecture(Long lectureId);
 
     Lecture save(Lecture lecture);

@@ -32,7 +32,7 @@ public class RegistrationFacade {
         User user = userService.getUser(request.userId());
 
         //강의 정보 조회
-        Lecture lecture = lectureService.getLecture(request.lectureId());
+        Lecture lecture = lectureService.getLectureWithLock(request.lectureId());
 
         //신청 가능 여부 조회
         if (registrationService.getSelectedRegist(user, lecture)) {

@@ -18,6 +18,9 @@ public class LectureService {
         this.lectureRepository = lectureRepository;
     }
 
+    public Lecture getLectureWithLock(Long lectureId){
+        return lectureRepository.getLectureWithLock(lectureId);
+    }
 
     public Lecture getLecture(Long lectureId) {
         return lectureRepository.getLecture(lectureId);
