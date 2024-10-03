@@ -15,6 +15,11 @@ public class LectureRepositoryImpl implements LectureRepository {
     private final LectureJpaRepository lectureJpaRepository;
 
     @Override
+    public Lecture getLectureWithLock(Long lectureId) {
+        return lectureJpaRepository.findByLectureIdWithLock(lectureId);
+    }
+
+    @Override
     public Lecture getLecture(Long lectureId) {
         return lectureJpaRepository.findByLectureId(lectureId);
     }

@@ -4,29 +4,28 @@ import com.hhplus.api.domain.course.domain.Course;
 import com.hhplus.api.domain.course.domain.CouseService;
 import com.hhplus.api.domain.lecture.domain.Lecture;
 import com.hhplus.api.domain.lecture.domain.LectureService;
-import com.hhplus.api.domain.lecture.repository.LectureRepository;
 import com.hhplus.api.domain.registration.domain.RegistrationService;
 import com.hhplus.api.domain.user.domain.User;
 import com.hhplus.api.domain.user.domain.UserService;
-import com.hhplus.api.domain.user.repository.UserRepository;
-import com.hhplus.api.domain.user.repository.UserRepositoryImpl;
 import com.hhplus.api.presentation.registration.RegistRequest;
-import org.junit.jupiter.api.BeforeEach;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,10 +42,43 @@ class RegistrationFacadeTest {
     private RegistrationService registrationService;
     @Mock
     private CouseService couseService;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private LectureRepository lectureRepository;
+
+    @Test
+    @DisplayName("선착순 30명인 특강에 40명 신청 시 실패 테스트")
+    @Transactional
+    void 신청자_30명_초과하면_실패() throws InterruptedException {
+        //given
+        int maxCount = 30;
+        int registTestCount = 40;
+        ExecutorService executorService = Executors.newFixedThreadPool(registTestCount);
+        CountDownLatch latch = new CountDownLatch(registTestCount);
+        AtomicInteger failCnt = new AtomicInteger(0);
+
+        Lecture math = new Lecture(1L, "이산수학", "장영철", maxCount, maxCount);
+        when(lectureService.getLecture(1L)).thenReturn(math);
+
+        //when
+        for (int i = 0; i < registTestCount; i++) {
+            Long userId = i+1L;
+            executorService.execute(() -> {
+                try {
+                    RegistRequest request = new RegistRequest(userId, math.getLectureId());
+                    registrationFacade.regist(request);
+                } catch(IllegalArgumentException ex) {
+                    if(ex.getMessage().equals("이미 마감된 강의입니다.")){
+                        failCnt.getAndIncrement();
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+
+        //then
+        assertEquals(10, failCnt);
+
+    }
 
     @Test
     @DisplayName("특강 신청 테스트")
@@ -61,7 +93,7 @@ class RegistrationFacadeTest {
         when(couseService.getCourse(math)).thenReturn(mathCourse);
 
         //when
-        RegistRequest request = new RegistRequest(1L, 1L);
+        RegistRequest request = new RegistRequest(user1.getUserId(), math.getLectureId());
         registrationFacade.regist(request);
 
         //then
