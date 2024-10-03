@@ -8,8 +8,6 @@ import com.hhplus.api.presentation.common.exception.UserNotFoundException;
 import com.hhplus.api.presentation.common.response.ApiResponse;
 import com.hhplus.api.presentation.common.response.ApiResponseHeader;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;

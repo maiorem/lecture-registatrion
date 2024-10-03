@@ -1,10 +1,7 @@
 package com.hhplus.api.domain.registration.domain;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,6 +12,7 @@ import org.hibernate.annotations.Comment;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "TB_REGIST")
 @Comment("수강신청 테이블")
 public class Registration {
 

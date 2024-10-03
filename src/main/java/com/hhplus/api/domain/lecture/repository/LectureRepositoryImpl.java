@@ -4,9 +4,11 @@ import com.hhplus.api.domain.course.domain.Course;
 import com.hhplus.api.domain.lecture.domain.Lecture;
 import com.hhplus.api.domain.registration.domain.Registration;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 @RequiredArgsConstructor
 public class LectureRepositoryImpl implements LectureRepository {
 

@@ -1,9 +1,6 @@
 package com.hhplus.api.domain.course.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.hibernate.annotations.Comment;
 
@@ -11,6 +8,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
+@Table(name = "TB_COURSE")
 @Comment("특강 스케쥴 테이블")
 public class Course {
 

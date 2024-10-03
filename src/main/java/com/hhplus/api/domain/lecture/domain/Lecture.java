@@ -1,16 +1,17 @@
 package com.hhplus.api.domain.lecture.domain;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.hibernate.annotations.Comment;
 
 @Getter
 @Entity
+@Table(name = "TB_LECTURE")
 @Comment("특강 테이블")
 public class Lecture {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long lectureId;
 
     private String lectureName;
