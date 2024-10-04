@@ -4,21 +4,25 @@ import com.hhplus.api.domain.course.domain.Course;
 import com.hhplus.api.domain.course.domain.CouseService;
 import com.hhplus.api.domain.lecture.domain.Lecture;
 import com.hhplus.api.domain.lecture.domain.LectureService;
+import com.hhplus.api.domain.registration.domain.Registration;
 import com.hhplus.api.domain.registration.domain.RegistrationService;
 import com.hhplus.api.domain.user.domain.User;
 import com.hhplus.api.domain.user.domain.UserService;
 import com.hhplus.api.presentation.registration.RegistRequest;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +46,11 @@ class RegistrationFacadeTest {
     private RegistrationService registrationService;
     @Mock
     private CouseService couseService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
 
     @Test
     @DisplayName("선착순 30명인 특강에 40명 신청 시 실패 테스트")
@@ -116,98 +125,97 @@ class RegistrationFacadeTest {
 
     @Test
     @DisplayName("특강 신청 테스트")
-    void regist() {
-        //given
-        User user1 = new User(1L, "홍길동");
-        Lecture math = new Lecture(1L, "이산수학", "장영철", 30, 30);
-        Course mathCourse = new Course(1L, LocalDateTime.of(2024, Month.SEPTEMBER, 10, 15, 30), 1L);
+    void testRegistSuccess() {
+        // Given
+        Long userId = 1L;
+        Long lectureId = 1L;
+        RegistRequest request = new RegistRequest(userId, lectureId);
 
-        when(userService.getUser(1L)).thenReturn(user1);
-        when(lectureService.getLecture(1L)).thenReturn(math);
-        when(couseService.getCourse(math)).thenReturn(mathCourse);
+        User user = new User();
+        Lecture lecture = new Lecture();
+        Course course = new Course();
 
-        //when
-        RegistRequest request = new RegistRequest(user1.getUserId(), math.getLectureId());
-        registrationFacade.regist(request);
+        when(userService.getUser(userId)).thenReturn(user);
+        when(lectureService.getLectureWithLock(lectureId)).thenReturn(lecture);
+        when(registrationService.getSelectedRegist(user, lecture)).thenReturn(false);
+        when(lecture.getAvailableSeat()).thenReturn(10);
+        when(couseService.getCourse(lecture)).thenReturn(course);
 
-        //then
-        assertEquals(29, math.getAvailableSeat());
+        // When
+        RegistInfo registInfo = registrationFacade.regist(request);
 
+        // Then
+        assertNotNull(registInfo);
+        verify(registrationService).regist(user, lecture);
+        verify(lectureService).seatSelect(lecture);
     }
 
     @Test
+    @DisplayName("이미 신청한 경우 테스트")
+    void testRegistAlreadyRegistered() {
+        // Given
+        Long userId = 1L;
+        Long lectureId = 1L;
+        RegistRequest request = new RegistRequest(userId, lectureId);
+
+        User user = new User();
+        Lecture lecture = new Lecture();
+
+        when(userService.getUser(userId)).thenReturn(user);
+        when(lectureService.getLectureWithLock(lectureId)).thenReturn(lecture);
+        when(registrationService.getSelectedRegist(user, lecture)).thenReturn(true);
+
+        // When / Then
+        assertThrows(IllegalArgumentException.class, () -> registrationFacade.regist(request));
+    }
+
+
+    @Test
     @DisplayName("특강 선택 가능 목록 조회 테스트")
-    void selectableCourseList() {
-        //given
-        User user1 = new User(1L, "홍길동");
-        Lecture math = new Lecture(1L, "이산수학", "장영철", 30, 30);
-        Lecture english = new Lecture(2L, "영어회화", "김수희", 30, 5);
-        Lecture science = new Lecture(3L, "과학", "오은영", 30, 10);
-        Lecture culture = new Lecture(4L, "문화의이해", "유은수", 30, 20);
+    void testSelectableCourseList() {
+        // Given
+        Long userId = 1L;
+        LocalDate date = LocalDate.now();
+        User user = new User();
+        List<Course> courseList = new ArrayList<>();
+        List<Registration> registList = new ArrayList<>();
+        List<Lecture> lectureList = new ArrayList<>();
 
-        Course mathCourse = new Course(1L, LocalDateTime.of(2024, Month.SEPTEMBER, 10, 15, 30), 1L);
-        Course englishCourse = new Course(2L, LocalDateTime.of(2024, Month.OCTOBER, 12, 11, 00), 2L);
-        Course scienceCourse = new Course(3L, LocalDateTime.of(2024, Month.OCTOBER, 12, 16, 00), 3L);
-        Course cultureCourse = new Course(4L, LocalDateTime.of(2024, Month.OCTOBER, 14, 12, 30), 4L);
+        when(userService.getUser(userId)).thenReturn(user);
+        when(couseService.getCouseByDate(date)).thenReturn(courseList);
+        when(registrationService.getSelectedRegistList(user)).thenReturn(registList);
+        when(lectureService.getSelectableLectureList(registList, courseList)).thenReturn(lectureList);
 
-        when(userService.getUser(1L)).thenReturn(user1);
+        // When
+        List<CourseInfo> result = registrationFacade.selectableCourseList(date, userId);
 
-        when(lectureService.getLecture(1L)).thenReturn(math);
-        when(lectureService.getLecture(2L)).thenReturn(english);
-        when(lectureService.getLecture(3L)).thenReturn(science);
-        when(lectureService.getLecture(4L)).thenReturn(culture);
-
-        when(couseService.getCourse(math)).thenReturn(mathCourse);
-        when(couseService.getCourse(english)).thenReturn(englishCourse);
-        when(couseService.getCourse(science)).thenReturn(scienceCourse);
-        when(couseService.getCourse(culture)).thenReturn(cultureCourse);
-
-        //when
-        List<CourseInfo> result = registrationFacade.selectableCourseList(LocalDate.of(2024, Month.OCTOBER, 12), 1L);
-
-        //then
-        assertEquals(2, result.size());
-
+        // Then
+        assertNotNull(result);
+        verify(userService).getUser(userId);
+        verify(couseService).getCouseByDate(date);
+        verify(lectureService).getSelectableLectureList(registList, courseList);
     }
 
     @Test
     @DisplayName("특강 신청 완료 목록 조회 테스트")
-    void registCompleteList() {
-        //given
-        User user1 = new User(1L, "홍길동");
-        Lecture math = new Lecture(1L, "이산수학", "장영철", 30, 30);
-        Lecture english = new Lecture(2L, "영어회화", "김수희", 30, 5);
-        Lecture science = new Lecture(3L, "과학", "오은영", 30, 10);
-        Lecture culture = new Lecture(4L, "문화의이해", "유은수", 30, 20);
+    void testRegistCompleteList() {
+        // Given
+        Long userId = 1L;
+        User user = new User();
+        List<Registration> registList = new ArrayList<>();
+        List<Lecture> lectureList = new ArrayList<>();
 
-        Course mathCourse = new Course(1L, LocalDateTime.of(2024, Month.SEPTEMBER, 10, 15, 30), 1L);
-        Course englishCourse = new Course(2L, LocalDateTime.of(2024, Month.OCTOBER, 12, 11, 00), 2L);
-        Course scienceCourse = new Course(3L, LocalDateTime.of(2024, Month.OCTOBER, 12, 16, 00), 3L);
-        Course cultureCourse = new Course(4L, LocalDateTime.of(2024, Month.OCTOBER, 14, 12, 30), 4L);
+        when(userService.getUser(userId)).thenReturn(user);
+        when(registrationService.getSelectedRegistList(user)).thenReturn(registList);
+        when(lectureService.registCompleteList(registList)).thenReturn(lectureList);
 
-        when(userService.getUser(1L)).thenReturn(user1);
+        // When
+        List<CourseInfo> result = registrationFacade.registCompleteList(userId);
 
-        when(lectureService.getLecture(1L)).thenReturn(math);
-        when(lectureService.getLecture(2L)).thenReturn(english);
-        when(lectureService.getLecture(3L)).thenReturn(science);
-        when(lectureService.getLecture(4L)).thenReturn(culture);
-
-        when(couseService.getCourse(math)).thenReturn(mathCourse);
-        when(couseService.getCourse(english)).thenReturn(englishCourse);
-        when(couseService.getCourse(science)).thenReturn(scienceCourse);
-        when(couseService.getCourse(culture)).thenReturn(cultureCourse);
-
-        RegistRequest request = new RegistRequest(1L, 1L);
-        registrationFacade.regist(request);
-        RegistRequest request2 = new RegistRequest(1L, 3L);
-        registrationFacade.regist(request2);
-        RegistRequest request3 = new RegistRequest(1L, 4L);
-        registrationFacade.regist(request2);
-
-        //when
-        List<CourseInfo> result = registrationFacade.registCompleteList(1L);
-
-        //then
-        assertEquals(3, result.size());
+        // Then
+        assertNotNull(result);
+        verify(userService).getUser(userId);
+        verify(registrationService).getSelectedRegistList(user);
+        verify(lectureService).registCompleteList(registList);
     }
 }
